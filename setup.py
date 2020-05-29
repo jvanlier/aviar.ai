@@ -13,7 +13,11 @@ setup(
     author_email="jori@jvlanalytics.nl",
     packages=["aviar"],
     install_requires=[
-        "click>=7.0.0",
+        "numpy",
+        "matplotlib",
+        "torch",
+        "torchvision",
+        "fastai"
     ],
     extras_require={
         "test": {

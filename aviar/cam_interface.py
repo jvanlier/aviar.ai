@@ -1,7 +1,10 @@
 """Talk to Birdcam and get usable JPEGs."""
-import requests
+from io import BytesIO
+import urllib
 
-from .env import JPG_URL
+import matplotlib.pyplot as plt
+
+from .env import JPG_URL, ROI_X_MIN, ROI_X_MAX, ROI_Y_MIN, ROI_Y_MAX
 
 
 class FetchException(Exception):
@@ -17,19 +20,13 @@ def fetch_jpeg() -> bytes:
     Raises:
         FetchException in case of a non-200 status code.
     """
-    req = requests.get(JPG_URL)
-    if req.status_code == 200:
-        return req.content
-    else:
-        raise FetchException(f"Got status code: {req.status_code}")
+    with urllib.request.urlopen(JPG_URL) as url:
+        return url.read()
 
 
 def fetch_jpeg_as_array_cropped():
     jpeg_bytes = fetch_jpeg()
+    bio = BytesIO(jpeg_bytes)
 
-
-    #TODO: 
-    #- load as numpy array (RGB)
-    #- crop
-    #- unit test, mocking fetch_jpeg
-    
+    img = plt.imread(bio, format="jpeg")
+    return img[ROI_Y_MIN:ROI_Y_MAX, ROI_X_MIN:ROI_X_MAX]
