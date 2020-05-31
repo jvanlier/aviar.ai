@@ -14,7 +14,7 @@ def _mock_fetch_jpeg():
 
 
 def test_fetch_jpeg_as_array_cropped(monkeypatch):
-    monkeypatch.setattr(victim, "_fetch_jpeg", _mock_fetch_jpeg) 
+    monkeypatch.setattr(victim, "_fetch_jpeg", _mock_fetch_jpeg)
 
     img = victim.fetch_jpeg_as_array_cropped()
 
