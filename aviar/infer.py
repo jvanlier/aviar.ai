@@ -15,6 +15,7 @@ class AbstractInference(ABC):
 
     @abstractmethod
     def predict(self, img: np.ndarray) -> float:
+        """Return probability of BirdHome."""
         pass
 
 
@@ -28,12 +29,12 @@ class FastaiInference(AbstractInference):
         self.learn = load_learner(path.parent, path.name)
 
     def predict(self, img: np.ndarray) -> float:
+        """Return probability of BirdHome."""
         img_tensor = torch.from_numpy(img).float() / 255
         # MPL has colors last, while torch expects colors first. Swap:
         img_tensor = img_tensor.permute(2, 0, 1)
         img = Image(img_tensor)
 
         preds = self.learn.predict(img)
-        # print(f"Raw preds: {preds}")
         pred_bird_home = preds[2][0]
         return pred_bird_home
