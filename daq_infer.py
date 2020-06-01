@@ -2,6 +2,8 @@
 from time import sleep
 import logging
 
+import matplotlib.pyplot as plt
+
 from aviar.cam_interface import fetch_jpeg_as_array_cropped
 from aviar.infer import FastaiInference
 
@@ -16,14 +18,13 @@ def main():
 
     while True:
         img = fetch_jpeg_as_array_cropped()
-        import matplotlib.pyplot as plt
-        plt.imsave("img.jpg", img)
-        
-        #img = plt.imread("/home/pi/labeled-sample/BirdRoaming/20200426T140201.jpeg")
+
+        plt.imsave("last-img.jpg", img)
 
         pred_bird_home = inf.predict(img)
-        logging.info(f"BirdHome: {pred_bird_home:5.3f}")
-        sleep(2)
+        bird_home = "Yes" if pred_bird_home > .5 else "No"
+        logging.info(f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f}")
+        sleep(5)
 
 
 if __name__ == "__main__":

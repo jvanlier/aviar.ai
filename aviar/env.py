@@ -5,4 +5,4 @@ ROI_Y_MAX = 1080
 ROI_X_MIN = 400
 ROI_X_MAX = 1200
 
-MODEL_PATH = "~/models/2020-05-27_resnet18.pkl"
+MODEL_PATH = "~/models/model_v2.1-frozen-epoch04-thaw-epoch06"

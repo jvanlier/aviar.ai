@@ -13,11 +13,11 @@ setup(
     author_email="jori@jvlanalytics.nl",
     packages=["aviar"],
     install_requires=[
-        "numpy",
-        "matplotlib",
-        "torch",
-        "torchvision",
-        "fastai"
+        "numpy>=1.18.0",
+        "matplotlib>=3.2.0",
+        "torch==1.4.0",
+        "torchvision==0.5.0",
+        "fastai==1.0.61"
     ],
     extras_require={
         "test": {
@@ -26,5 +26,5 @@ setup(
             "pytest"
         },
     },
-    scripts=["daq_infer"]
+    scripts=["daq_infer.py"]
 )
