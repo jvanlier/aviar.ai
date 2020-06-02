@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from aviar.cam_interface import fetch_jpeg_as_array_cropped
-from aviar.infer import KerasInference
+from aviar.infer import TfLiteInference
 
 
 logging.basicConfig(level=logging.INFO,
@@ -19,7 +19,7 @@ def is_gray(img):
 
 
 def main():
-    inf = KerasInference()
+    inf = TfLiteInference()
 
     while True:
         img = fetch_jpeg_as_array_cropped()

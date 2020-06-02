@@ -1,14 +1,22 @@
 """Inference for Birdcam."""
 from abc import ABC, abstractmethod
 from pathlib import Path
+import platform
 
+from PIL import Image
 import numpy as np
-from fastai.vision import load_learner, Image
-import torch
-import tensorflow as tf
 import cv2
+import tflite_runtime.interpreter as tflite
 
-from .env import FASTAI_MODEL_PATH, KERAS_MODEL_PATH, KERAS_MEAN, KERAS_RESCALE, KERAS_IMG_SIZE
+from . import classify
+from .env import TFLITE_MODEL_PATH, KERAS_RESCALE, KERAS_MEAN, KERAS_IMG_SIZE
+
+
+EDGETPU_SHARED_LIB = {
+  'Linux': 'libedgetpu.so.1',
+  'Darwin': 'libedgetpu.1.dylib',
+  'Windows': 'edgetpu.dll'
+}[platform.system()]
 
 
 class AbstractInference(ABC):
@@ -21,42 +29,30 @@ class AbstractInference(ABC):
         pass
 
 
-class FastaiInference(AbstractInference):
+class TfLiteInference(AbstractInference):
     def __init__(self):
-        path = Path(FASTAI_MODEL_PATH).expanduser()
-
-        if not path.is_file():
-            raise FileNotFoundError(path)
-
-        self.learn = load_learner(path.parent, path.name)
-
-    def predict(self, img: np.ndarray) -> float:
-        """Return probability of BirdHome."""
-        img_tensor = torch.from_numpy(img).float() / 255
-        # MPL has colors last, while torch expects colors first. Swap:
-        img_tensor = img_tensor.permute(2, 0, 1)
-        img = Image(img_tensor)
-
-        preds = self.learn.predict(img)
-        pred_bird_home = preds[2][0]
-        return pred_bird_home
-
-
-class KerasInference(AbstractInference):
-    def __init__(self):
-        path = Path(KERAS_MODEL_PATH).expanduser()
+        path = Path(TFLITE_MODEL_PATH).expanduser()
 
         if not path.exists():
             raise FileNotFoundError(Path)
 
-        self.model = tf.keras.models.load_model(KERAS_MODEL_PATH)
+        self.model = tflite.Interpreter(
+            model_path=str(path),
+            experimental_delegates=[
+                tflite.load_delegate(EDGETPU_SHARED_LIB, {})
+            ])
+        self.model.allocate_tensors()
 
     def predict(self, img: np.ndarray) -> float:
         """Return probability of BirdHome."""
-        img_small = cv2.resize(img, KERAS_IMG_SIZE)
-        img_small = (img_small * KERAS_RESCALE) - KERAS_MEAN
-        img_small_batch = np.expand_dims(img_small, 0)
+#        img_small = cv2.resize(img, KERAS_IMG_SIZE, interpolation=cv2.INTER_AREA)
+#        img_small = (img_small * KERAS_RESCALE) - KERAS_MEAN
+ #       classify.set_input(self.model, img_small)
 
-        preds = self.model.predict(img_small_batch)
+        image = Image.fromarray(img).convert('RGB').resize(KERAS_IMG_SIZE, Image.ANTIALIAS)
+        classify.set_input(self.model, image)
 
-        return preds[0][0]
+        self.model.invoke()
+        preds = classify.get_output(self.model, 1, 0)
+
+        return preds[0].score

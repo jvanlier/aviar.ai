@@ -1,6 +1,7 @@
 """Talk to Birdcam and get usable JPEGs."""
 from io import BytesIO
-import urllib
+#from urllib import URLError
+import urllib.request as request
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,14 +23,11 @@ def _fetch_jpeg() -> bytes:
         FetchException in case of protocol errors (urllib.URLError) or a
             non-200 status code.
     """
-    try:
-        with urllib.request.urlopen(JPG_URL) as url:
-            code = url.getcode()
-            if code != 200:
-                raise FetchException(f"Got a non-200 status code: {code}")
-            return url.read()
-    except urllib.URLError as e:
-        raise FetchException(e)
+    with request.urlopen(JPG_URL) as url:
+        code = url.getcode()
+        if code != 200:
+            raise FetchException(f"Got a non-200 status code: {code}")
+        return url.read()
 
 
 def fetch_jpeg_as_array_cropped() -> np.ndarray:
