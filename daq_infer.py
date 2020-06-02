@@ -2,10 +2,11 @@
 from time import sleep
 import logging
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from aviar.cam_interface import fetch_jpeg_as_array_cropped
-from aviar.infer import FastaiInference
+from aviar.infer import KerasInference
 
 
 logging.basicConfig(level=logging.INFO,
@@ -13,11 +14,20 @@ logging.basicConfig(level=logging.INFO,
                            "[%(module)s/%(funcName)s]: %(message)s")
 
 
+def is_gray(img):
+    return np.all(img[:, :, 0] == img[:, :, 1])
+
+
 def main():
-    inf = FastaiInference()
+    inf = KerasInference()
 
     while True:
         img = fetch_jpeg_as_array_cropped()
+
+        if is_gray(img):
+            logging.info("Got grayscale image - not supported. Sleeping 30 sec.")
+            sleep(30)
+            continue
 
         plt.imsave("last-img.jpg", img)
 
