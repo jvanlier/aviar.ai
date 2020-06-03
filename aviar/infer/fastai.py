@@ -1,27 +1,16 @@
-"""Inference for Birdcam."""
-from abc import ABC, abstractmethod
 from pathlib import Path
 
 import numpy as np
 from fastai.vision import load_learner, Image
 import torch
 
-from .env import MODEL_PATH
-
-
-class AbstractInference(ABC):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def predict(self, img: np.ndarray) -> float:
-        """Return probability of BirdHome."""
-        pass
+from aviar.env import FASTAI_MODEL_PATH
+from aviar.infer.abstract import AbstractInference
 
 
 class FastaiInference(AbstractInference):
     def __init__(self):
-        path = Path(MODEL_PATH).expanduser()
+        path = Path(FASTAI_MODEL_PATH).expanduser()
 
         if not path.is_file():
             raise FileNotFoundError(path)
