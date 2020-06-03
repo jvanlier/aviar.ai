@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from aviar.cam_interface import fetch_jpeg_as_array_cropped
-from aviar.infer import KerasInference
+from aviar.infer.tflite import TfLiteInference
 
 
 logging.basicConfig(level=logging.INFO,
@@ -19,7 +19,7 @@ def is_gray(img):
 
 
 def main():
-    inf = KerasInference()
+    inf = TfLiteInference()
 
     while True:
         img = fetch_jpeg_as_array_cropped()
@@ -34,7 +34,7 @@ def main():
         pred_bird_home = inf.predict(img)
         bird_home = "Yes" if pred_bird_home > .5 else "No"
         logging.info(f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f}")
-        sleep(5)
+        sleep(1)
 
 
 if __name__ == "__main__":

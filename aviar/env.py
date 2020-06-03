@@ -14,3 +14,5 @@ KERAS_MODEL_PATH = "/home/pi/models/export"
 KERAS_IMG_SIZE = (336, 336)
 KERAS_RESCALE = 1/128
 KERAS_MEAN = np.array([[[0.74136317, 0.73086095, 0.74473]]], dtype=np.float32)
+
+TFLITE_MODEL_PATH = "~/models/export-tflite_quant_edgetpu.tflite"
