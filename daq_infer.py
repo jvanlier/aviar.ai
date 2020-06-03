@@ -2,10 +2,10 @@
 from time import sleep
 import logging
 
+import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-from aviar.cam_interface import fetch_jpeg_as_array_cropped
+from aviar.cam_interface import apply_roi
 from aviar.infer.tflite import TfLiteInference
 
 
@@ -22,19 +22,31 @@ def main():
     inf = TfLiteInference()
 
     while True:
-        img = fetch_jpeg_as_array_cropped()
+        cap = cv2.VideoCapture("rtsp://192.168.2.50:554/s0")
+        while(cap.isOpened()):
+            ret, img_bgr = cap.read()
+            if not ret:
+                logging.error("Coud not read frame. Sleeping 60 sec before retry")
+                sleep(60)
+                break
 
-        if is_gray(img):
-            logging.info("Got grayscale image - not supported. Sleeping 30 sec.")
-            sleep(30)
-            continue
+            if is_gray(img_bgr):
+                logging.info("Got grayscale image - not supported. Sleeping 60 sec.")
+                sleep(60)
+                continue
 
-        plt.imsave("last-img.jpg", img)
+            img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+            img = apply_roi(img)
+            # plt.imsave("last-img.jpg", img)
 
-        pred_bird_home = inf.predict(img)
-        bird_home = "Yes" if pred_bird_home > .5 else "No"
-        logging.info(f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f}")
-        sleep(1)
+            pred_bird_home = inf.predict(img)
+            bird_home = "Yes" if pred_bird_home > .5 else "No "
+            logging.info(f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f}")
+            # sleep(1)
+
+        cap.release()
+        logging.warning("cap.isOpened() returned false - sleeping 60 sec before reconnecting.")
+        sleep(60)
 
 
 if __name__ == "__main__":

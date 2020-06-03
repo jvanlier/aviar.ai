@@ -1,6 +1,5 @@
 """Talk to Birdcam and get usable JPEGs."""
 from io import BytesIO
-#from urllib import URLError
 import urllib.request as request
 
 import numpy as np
@@ -20,8 +19,7 @@ def _fetch_jpeg() -> bytes:
         raw bytes, representing a JPEG
 
     Raises:
-        FetchException in case of protocol errors (urllib.URLError) or a
-            non-200 status code.
+        FetchException in case of a non-200 status code.
     """
     with request.urlopen(JPG_URL) as url:
         code = url.getcode()
@@ -38,11 +36,14 @@ def fetch_jpeg_as_array_cropped() -> np.ndarray:
         numpy array
 
     Raises:
-        FetchException in case of protocol errors (urllib.URLError) or a
-            non-200 status code.
+        FetchException in case of a non-200 status code.
     """
     jpeg_bytes = _fetch_jpeg()
     bio = BytesIO(jpeg_bytes)
 
     img = plt.imread(bio, format="jpeg")
+    return apply_roi(img)
+
+
+def apply_roi(img):
     return img[ROI_Y_MIN:ROI_Y_MAX, ROI_X_MIN:ROI_X_MAX]
