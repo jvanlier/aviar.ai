@@ -2,6 +2,7 @@ import numpy as np
 
 
 JPG_URL = "http://192.168.2.50/snap.jpeg"
+RTSP_URL = "rtsp://192.168.2.50:554/s0"
 
 ROI_Y_MIN = 100
 ROI_Y_MAX = 1080
