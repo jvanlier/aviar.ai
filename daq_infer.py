@@ -105,7 +105,6 @@ class InferenceManagerThread(Thread):
         logging.info(f"InferenceManager starting InfThr {self._inf_thread_id}")
         self.inference_thread = InferenceThread(self.queue, self._inf_thread_id)
         self.inference_thread.start()
-        self.inference_thread.join()
 
     def run(self):
         self._start_inference()
