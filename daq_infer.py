@@ -79,15 +79,15 @@ class InferenceThread(Thread):
 
     def run(self):
         while True:
+            if self.killed:
+                return
+
             img = self.queue.get()
             pred_bird_home = self.inf.predict(img)
             bird_home = "Yes" if pred_bird_home > PROB_THRESHOLD else "No "
             logging.info(f"[InfThr {self._inf_thread_id:03d}] "
                          f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f} "
                          f"(Q size: {self.queue.qsize()})")
-
-            if self.killed:
-                return
 
 
 class InferenceManagerThread(Thread):
@@ -99,12 +99,17 @@ class InferenceManagerThread(Thread):
         super().__init__()
         self.queue = queue
         self._inf_thread_id = 0
+        self._inf_thread = None
 
     def _start_inference(self):
+        if self._inf_thread:
+            logging.warning(f"InfMgr setting InfThr {self._inf_thread_id} to killed")
+            self._inf_thread.killed = True
+
         self._inf_thread_id += 1
-        logging.info(f"InferenceManager starting InfThr {self._inf_thread_id}")
-        self.inference_thread = InferenceThread(self.queue, self._inf_thread_id)
-        self.inference_thread.start()
+        logging.info(f"InfMgr starting InfThr {self._inf_thread_id}")
+        self._inf_thread = InferenceThread(self.queue, self._inf_thread_id)
+        self._inf_thread.start()
 
     def run(self):
         self._start_inference()
@@ -113,7 +118,6 @@ class InferenceManagerThread(Thread):
                 logging.warning("Queue size exceeds tolerance "
                                 f"(Q size: {self.queue.qsize()}, tolerance: {QUEUE_SIZE_STALL_TRIGGER}), "
                                 f"assuming InfThr {self._inf_thread_id} has stalled")
-                self.inference_thread.killed = True
                 self._start_inference()
 
             sleep(SLEEP_S_INF_MANAGER)
@@ -125,8 +129,8 @@ def main():
     inf_mgr = InferenceManagerThread(queue)
     cam.start()
     inf_mgr.start()
+
     cam.join()
-    inf_mgr.join()
 
 
 if __name__ == "__main__":
