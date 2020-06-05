@@ -21,6 +21,9 @@ SLEEP_S_READ_ERROR = 5
 SLEEP_S_GRAYSCALE = 60
 SLEEP_S_CAP_CLOSED = 5
 PROB_THRESHOLD = .5
+QUEUE_SIZE = 20
+QUEUE_SIZE_STALL_TRIGGER = 6
+SLEEP_S_INF_MANAGER = 1
 
 
 class CameraReaderThread(Thread):
@@ -29,6 +32,7 @@ class CameraReaderThread(Thread):
         self.queue = queue
 
     def run(self):
+        logging.info("CameraReaderThread starting")
         while True:
             cap = cv2.VideoCapture(RTSP_URL)
             while(cap.isOpened()):
@@ -48,7 +52,10 @@ class CameraReaderThread(Thread):
                 # plt.imsave("last-img.jpg", img)
 
                 self.queue.put(img)
-                # sleep(1)
+                logging.info(f"Placed image on queue (Q size: {self.queue.qsize()})")
+
+                # Do not sleep here to introduce artificial latency - it seems to cause read errors.
+                # Instead, change frame rate on the camera's RTSP stream.
 
             cap.release()
             logging.warning(f"cap.isOpened() returned false - sleeping {SLEEP_S_CAP_CLOSED}"
@@ -62,27 +69,65 @@ class CameraReaderThread(Thread):
 
 
 class InferenceThread(Thread):
-    def __init__(self, queue):
+    def __init__(self, queue, thread_id):
         super().__init__()
-        self.inf = TfLiteInference()
         self.queue = queue
+        self._inf_thread_id = thread_id
+        self.killed = False
+
+        self.inf = TfLiteInference()
 
     def run(self):
         while True:
             img = self.queue.get()
             pred_bird_home = self.inf.predict(img)
             bird_home = "Yes" if pred_bird_home > PROB_THRESHOLD else "No "
-            logging.info(f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f}")
+            logging.info(f"[InfThr {self._inf_thread_id:03d}] "
+                         f"BirdHome: {bird_home}, p: {pred_bird_home:5.3f} "
+                         f"(Q size: {self.queue.qsize()})")
+
+            if self.killed:
+                return
+
+
+class InferenceManagerThread(Thread):
+    """The inference thread tends to stall at some point. Probably some kind of bug in the TPU code.
+    The workaround is to just restart it when that happens.
+    A downside is that we might end up with a lot of stale threads.
+    """
+    def __init__(self, queue):
+        super().__init__()
+        self.queue = queue
+        self._inf_thread_id = 0
+
+    def _start_inference(self):
+        self._inf_thread_id += 1
+        logging.info(f"InferenceManager starting InfThr {self._inf_thread_id}")
+        self.inference_thread = InferenceThread(self.queue, self._inf_thread_id)
+        self.inference_thread.start()
+        self.inference_thread.join()
+
+    def run(self):
+        self._start_inference()
+        while True:
+            if self.queue.qsize() > QUEUE_SIZE_STALL_TRIGGER:
+                logging.warning("Queue size exceeds tolerance "
+                                f"(Q size: {self.queue.qsize()}, tolerance: {QUEUE_SIZE_STALL_TRIGGER}), "
+                                f"assuming InfThr {self._inf_thread_id} has stalled")
+                self.inference_thread.killed = True
+                self._start_inference()
+
+            sleep(SLEEP_S_INF_MANAGER)
 
 
 def main():
-    queue = Queue(maxsize=20)
+    queue = Queue(maxsize=QUEUE_SIZE)
     cam = CameraReaderThread(queue)
-    inf = InferenceThread(queue)
+    inf_mgr = InferenceManagerThread(queue)
     cam.start()
-    inf.start()
+    inf_mgr.start()
     cam.join()
-    inf.join()
+    inf_mgr.join()
 
 
 if __name__ == "__main__":
